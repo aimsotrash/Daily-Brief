@@ -117,7 +117,7 @@ daily-brief/
 │   ├── briefing/generator.py  personalised briefing
 │   └── api/                   FastAPI app + schemas
 ├── web/                       index.html, app.js, styles.css
-└── tests/                     263 tests
+└── tests/                     290 tests
 ```
 
 ---
