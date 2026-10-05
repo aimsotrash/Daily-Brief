@@ -1,0 +1,107 @@
+# Daily-Brief system configuration.
+#
+# This file holds *system* configuration only. User personalization (interests,
+# onboarding state) lives in the database and is edited via the UI or the CLI
+# `configure` command -- see README section "Configuration".
+#
+# Every value here can be overridden by an environment variable of the form
+#   DAILY_BRIEF_<SECTION>_<KEY>      e.g. DAILY_BRIEF_SERVER_PORT=9000
+# Environment variables win over this file.
+
+[server]
+host = "127.0.0.1"
+port = 8787
+# Set to true to auto-open a browser when running `daily-brief run`.
+open_browser = false
+
+[storage]
+# Where the SQLite database and logs live. "~" is expanded.
+# Defaults to $XDG_DATA_HOME/daily-brief or ~/.local/share/daily-brief.
+data_dir = "~/.local/share/daily-brief"
+db_filename = "daily_brief.db"
+
+[sources]
+# Path to the feed registry. Relative paths resolve against this file's directory.
+registry = "sources.yaml"
+# Only ingest feeds whose `enabled` flag is true in the registry.
+
+[ingest]
+# Background refresh cadence for feed ingestion.
+refresh_interval_minutes = 30
+# Per-feed cap on articles kept from a single fetch.
+max_articles_per_feed = 40
+# Articles older than this are pruned from the database.
+retention_days = 21
+# Per-request network timeout (seconds).
+fetch_timeout_seconds = 20
+# How many feeds to fetch concurrently.
+concurrency = 8
+user_agent = "daily-brief/0.1 (self-hosted personal news reader; +https://github.com/local/daily-brief)"
+# Ignore a feed after this many consecutive failures until it succeeds again.
+max_consecutive_failures = 10
+
+[briefing]
+# Local time at which the briefing is generated automatically.
+schedule_hour = 6
+schedule_minute = 30
+# A briefing older than this is regenerated on demand when the UI asks for it.
+max_age_minutes = 240
+max_sections = 8
+max_stories_per_section = 5
+max_total_stories = 30
+# Only consider articles published within this many hours.
+lookback_hours = 36
+
+[search]
+# Candidate pool pulled from the index before re-ranking.
+candidate_limit = 120
+# Articles handed to the model as grounding context.
+context_articles = 8
+# Minimum blended relevance score for an article to count as a hit (0..1).
+min_score = 0.06
+# How many prior turns of a chat session are replayed as context.
+history_turns = 6
+# Articles published within this many hours count as "today" for time-scoped queries.
+recent_hours = 24
+
+[llm]
+# provider = "openai_compat" talks to any OpenAI-compatible /v1/chat/completions
+# endpoint: Ollama, llama.cpp server, vLLM, LM Studio, LocalAI, text-generation-webui.
+# provider = "none" disables generative summarisation and uses the deterministic
+# extractive engine instead. The application is fully functional either way.
+provider = "openai_compat"
+base_url = "http://127.0.0.1:11434/v1"
+model = "qwen2.5:7b-instruct"
+# Measured over 4 real searches with CPU-only inference:
+#   qwen2.5:7b-instruct  mean 85s, produced a properly cited answer 4/4 times
+#   llama3.2:3b          mean 43s, properly cited 3/4 times (also installed)
+# The 7b was chosen for citation reliability: when validation fails, the answer
+# degrades to extractive extracts, so reliability is worth more than latency.
+# Expect roughly 10-15s with GPU inference. To switch models, edit this
+# line or set DAILY_BRIEF_LLM_MODEL, then: systemctl --user restart daily-brief
+# Read from the DAILY_BRIEF_LLM_API_KEY env var if set; most local servers ignore it.
+api_key = ""
+temperature = 0.2
+max_tokens = 900
+# Generous, because CPU-only inference is slow: a long briefing section can take
+# a couple of minutes. Lower it once running on a GPU.
+timeout_seconds = 300
+# If the endpoint is unreachable, fall back to the extractive engine rather than
+# failing the request. Strongly recommended: it keeps the app usable and it can
+# never hallucinate.
+fallback_to_extractive = true
+# Cache the health probe result for this long (seconds) to avoid probing per request.
+health_cache_seconds = 60
+
+[analysis]
+# Enable LLM-assisted article bias analysis. The heuristic analyser always runs
+# first and provides the baseline; the LLM only adjusts and explains it.
+llm_bias_analysis = false
+# Enable LLM abstractive summaries during ingestion. Off by default because it is
+# slow over a full feed sweep; search and briefing summarise on demand instead.
+llm_ingest_summaries = false
+
+[logging]
+level = "INFO"
+# Relative filenames resolve against storage.data_dir. Empty string = stderr only.
+file = "daily-brief.log"

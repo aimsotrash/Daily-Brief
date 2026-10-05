@@ -1,0 +1,879 @@
+# Daily-Brief source registry.
+#
+# Adding a source = adding an entry here. Nothing in the code knows about any
+# specific publication. Remove or set `enabled: false` to drop one.
+#
+# ---------------------------------------------------------------------------
+# ABOUT THE BIAS METADATA -- PLEASE READ
+# ---------------------------------------------------------------------------
+# `lean` is an ANALYTICAL CLASSIFICATION, not a fact. It is a coarse editorial
+# prior describing where a publication's *news framing* has generally been placed
+# by media-bias research (AllSides, Ad Fontes, Reuters Institute) and by the
+# outlet's own stated positioning. It is:
+#
+#   * a prior, not a verdict -- the article-level analyser in
+#     daily_brief/analysis/bias.py adjusts it per article using measurable text
+#     signals, and can move an article well away from its source prior;
+#   * about US/UK political framing, which is a poor fit for many outlets --
+#     hence `confidence`, which the UI uses to hedge how strongly it presents it;
+#   * contestable. `notes` records the reasoning so a user can disagree with it.
+#
+# lean: left | center-left | center | center-right | right | state-affiliated |
+#       not-applicable
+# confidence: low | medium | high   (how well the lean label fits this outlet)
+# source_type: wire | newspaper | broadcaster | public-broadcaster |
+#              digital-native | magazine | trade | aggregator | blog |
+#              vendor | non-profit
+# ---------------------------------------------------------------------------
+
+methodology:
+  version: 1
+  scale: "left, center-left, center, center-right, right, state-affiliated, not-applicable"
+  basis: >-
+    Coarse priors informed by published media-bias ratings (AllSides,
+    Ad Fontes Media), Reuters Institute Digital News Report trust/positioning
+    data, and outlets' self-described editorial stance. Applied to news framing,
+    not to factual accuracy -- an outlet with a strong lean can still be
+    factually reliable, and a centrist outlet can still be wrong.
+  disclaimer: >-
+    These labels are analytical classifications produced for context, not
+    statements of fact, and they describe the publication as a whole. Individual
+    articles vary; Daily-Brief therefore analyses articles individually and shows
+    the evidence behind each article-level assessment.
+
+defaults:
+  enabled: true
+  lean: unknown
+  confidence: low
+  source_type: digital-native
+  country: US
+
+sources:
+  # ---------------------------------------------------------------- world news
+  - id: bbc-world
+    name: BBC News (World)
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+    site: https://www.bbc.com/news
+    categories: [world, geopolitics]
+    lean: center
+    confidence: medium
+    source_type: public-broadcaster
+    country: UK
+    ownership: "Public corporation, funded by UK licence fee"
+    notes: >-
+      Operates under a statutory impartiality duty. Rated centre by AllSides for
+      US coverage; criticised from both directions over UK domestic coverage.
+
+  - id: guardian-world
+    name: The Guardian (World)
+    url: https://www.theguardian.com/world/rss
+    site: https://www.theguardian.com
+    categories: [world, geopolitics]
+    lean: center-left
+    confidence: high
+    source_type: newspaper
+    country: UK
+    ownership: "Scott Trust Limited (non-profit ownership structure)"
+    notes: "Openly progressive editorial line; news reporting rated left-of-centre."
+
+  - id: guardian-us
+    name: The Guardian (US politics)
+    url: https://www.theguardian.com/us-news/rss
+    site: https://www.theguardian.com/us-news
+    categories: [us-politics, politics]
+    lean: center-left
+    confidence: high
+    source_type: newspaper
+    country: UK
+
+  - id: npr-news
+    name: NPR (Top stories)
+    url: https://feeds.npr.org/1001/rss.xml
+    site: https://www.npr.org
+    categories: [world, us-politics, general]
+    lean: center-left
+    confidence: medium
+    source_type: public-broadcaster
+    country: US
+    ownership: "Non-profit; member stations, sponsorship, grants"
+    notes: "Rated centre to lean-left; strongest lean appears in framing/topic selection."
+
+  - id: aljazeera
+    name: Al Jazeera English
+    url: https://www.aljazeera.com/xml/rss/all.xml
+    site: https://www.aljazeera.com
+    categories: [world, geopolitics, middle-east]
+    lean: center-left
+    confidence: low
+    source_type: broadcaster
+    country: QA
+    ownership: "Funded by the government of Qatar"
+    notes: >-
+      A left/right axis fits poorly. Broad international reporting with noted
+      editorial sensitivity on Gulf-state politics. Treat lean as low-confidence.
+
+  - id: dw-world
+    name: Deutsche Welle (World)
+    url: https://rss.dw.com/rdf/rss-en-world
+    site: https://www.dw.com
+    categories: [world, europe, geopolitics]
+    lean: center
+    confidence: medium
+    source_type: public-broadcaster
+    country: DE
+    ownership: "German public international broadcaster, federally funded"
+
+  - id: france24
+    name: France 24
+    url: https://www.france24.com/en/rss
+    site: https://www.france24.com
+    categories: [world, europe, geopolitics]
+    lean: center
+    confidence: low
+    source_type: public-broadcaster
+    country: FR
+    ownership: "France Médias Monde, state-funded"
+
+  - id: reuters-institute-ft
+    name: Financial Times (World)
+    url: https://www.ft.com/world?format=rss
+    site: https://www.ft.com
+    categories: [world, business, geopolitics]
+    lean: center
+    confidence: medium
+    source_type: newspaper
+    country: UK
+    ownership: "Nikkei Inc."
+    notes: "Business-oriented centrist reporting; editorial page economically liberal."
+
+  - id: economist-intl
+    name: The Economist (International)
+    url: https://www.economist.com/international/rss.xml
+    site: https://www.economist.com
+    categories: [world, geopolitics, business]
+    lean: center
+    confidence: medium
+    source_type: magazine
+    country: UK
+    notes: "Classical-liberal editorial stance; socially liberal, economically free-market."
+
+  - id: independent-world
+    name: The Independent (World)
+    url: https://www.independent.co.uk/news/world/rss
+    site: https://www.independent.co.uk
+    categories: [world, uk]
+    lean: center-left
+    confidence: medium
+    source_type: newspaper
+    country: UK
+
+  - id: telegraph-news
+    name: The Telegraph
+    url: https://www.telegraph.co.uk/news/rss.xml
+    site: https://www.telegraph.co.uk
+    categories: [world, uk, politics]
+    lean: right
+    confidence: high
+    source_type: newspaper
+    country: UK
+    notes: "Long-standing conservative editorial alignment in the UK."
+
+  - id: skynews-world
+    name: Sky News (World)
+    url: https://feeds.skynews.com/feeds/rss/world.xml
+    site: https://news.sky.com
+    categories: [world, uk]
+    lean: center
+    confidence: low
+    source_type: broadcaster
+    country: UK
+
+  - id: semafor
+    name: Semafor
+    url: https://www.semafor.com/rss.xml
+    site: https://www.semafor.com
+    categories: [world, business, us-politics]
+    lean: center
+    confidence: low
+    source_type: digital-native
+    country: US
+    notes: "Format explicitly separates reporting from the reporter's analysis."
+
+  - id: restofworld
+    name: Rest of World
+    url: https://restofworld.org/feed/latest/
+    site: https://restofworld.org
+    categories: [technology, world, global-south]
+    lean: center
+    confidence: low
+    source_type: non-profit
+    country: US
+    notes: "Non-profit covering technology outside the US/Europe."
+
+  - id: japantimes
+    name: The Japan Times
+    url: https://www.japantimes.co.jp/feed/
+    site: https://www.japantimes.co.jp
+    categories: [world, asia]
+    lean: center
+    confidence: low
+    source_type: newspaper
+    country: JP
+
+  - id: scmp
+    name: South China Morning Post
+    url: https://www.scmp.com/rss/91/feed
+    site: https://www.scmp.com
+    categories: [world, asia, china, geopolitics]
+    lean: center
+    confidence: low
+    source_type: newspaper
+    country: HK
+    ownership: "Alibaba Group"
+    notes: >-
+      Hong Kong based, Alibaba-owned. Reporting on mainland Chinese politics is
+      widely regarded as constrained. Low-confidence label.
+
+  - id: cna-asia
+    name: Channel News Asia
+    url: https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml
+    site: https://www.channelnewsasia.com
+    categories: [world, asia]
+    lean: center
+    confidence: low
+    source_type: broadcaster
+    country: SG
+    ownership: "Mediacorp, Singapore state-owned"
+
+  - id: rt-news
+    name: RT
+    url: https://www.rt.com/rss/news/
+    site: https://www.rt.com
+    categories: [world, geopolitics]
+    lean: state-affiliated
+    confidence: high
+    source_type: broadcaster
+    country: RU
+    enabled: false
+    ownership: "Funded by the Russian state"
+    notes: >-
+      Disabled by default. Included so the source model can express
+      state-affiliated media; enable only if you specifically want to observe
+      Russian state framing alongside other coverage.
+
+  # ------------------------------------------------------------- US politics
+  - id: thehill
+    name: The Hill
+    url: https://thehill.com/feed/
+    site: https://thehill.com
+    categories: [us-politics, politics]
+    lean: center
+    confidence: medium
+    source_type: digital-native
+    country: US
+    notes: "Process-focused Capitol Hill coverage; opinion section spans both sides."
+
+  - id: axios
+    name: Axios
+    url: https://www.axios.com/feeds/feed.rss
+    site: https://www.axios.com
+    categories: [us-politics, business, technology]
+    lean: center
+    confidence: medium
+    source_type: digital-native
+    country: US
+
+  - id: foxnews-politics
+    name: Fox News (Politics)
+    url: https://moxie.foxnews.com/google-publisher/politics.xml
+    site: https://www.foxnews.com
+    categories: [us-politics, politics]
+    lean: right
+    confidence: high
+    source_type: broadcaster
+    country: US
+    notes: "News desk rated lean-right to right; opinion programming further right."
+
+  - id: foxnews-world
+    name: Fox News (World)
+    url: https://moxie.foxnews.com/google-publisher/world.xml
+    site: https://www.foxnews.com/world
+    categories: [world, geopolitics]
+    lean: right
+    confidence: high
+    source_type: broadcaster
+    country: US
+
+  - id: nationalreview
+    name: National Review
+    url: https://www.nationalreview.com/feed/
+    site: https://www.nationalreview.com
+    categories: [us-politics, politics]
+    lean: right
+    confidence: high
+    source_type: magazine
+    country: US
+    notes: "Explicitly conservative magazine; most output is opinion/analysis."
+
+  - id: washingtonexaminer
+    name: Washington Examiner
+    url: https://www.washingtonexaminer.com/feed
+    site: https://www.washingtonexaminer.com
+    categories: [us-politics, politics]
+    lean: right
+    confidence: high
+    source_type: digital-native
+    country: US
+
+  - id: dailywire
+    name: The Daily Wire
+    url: https://www.dailywire.com/feeds/rss.xml
+    site: https://www.dailywire.com
+    categories: [us-politics, politics, culture]
+    lean: right
+    confidence: high
+    source_type: digital-native
+    country: US
+    notes: "Explicitly conservative commentary outlet."
+
+  - id: breitbart
+    name: Breitbart
+    url: https://www.breitbart.com/feed/
+    site: https://www.breitbart.com
+    categories: [us-politics, politics]
+    lean: right
+    confidence: high
+    source_type: digital-native
+    country: US
+    enabled: false
+    notes: >-
+      Disabled by default. Retained in the registry so right-of-centre framing
+      is representable at the far end of the scale; enable deliberately.
+
+  - id: nypost
+    name: New York Post
+    url: https://nypost.com/feed/
+    site: https://nypost.com
+    categories: [us-politics, general, culture]
+    lean: center-right
+    confidence: medium
+    source_type: newspaper
+    country: US
+    ownership: "News Corp"
+
+  - id: reason
+    name: Reason
+    url: https://reason.com/feed/
+    site: https://reason.com
+    categories: [us-politics, politics, technology]
+    lean: center-right
+    confidence: medium
+    source_type: magazine
+    country: US
+    notes: >-
+      Libertarian. Maps poorly onto a single left/right axis: economically
+      right-leaning, socially liberal, consistently civil-liberties focused.
+
+  - id: vox
+    name: Vox
+    url: https://www.vox.com/rss/index.xml
+    site: https://www.vox.com
+    categories: [us-politics, technology, culture]
+    lean: left
+    confidence: high
+    source_type: digital-native
+    country: US
+    notes: "Explanatory journalism with a stated progressive perspective."
+
+  - id: motherjones
+    name: Mother Jones
+    url: https://www.motherjones.com/feed/
+    site: https://www.motherjones.com
+    categories: [us-politics, politics]
+    lean: left
+    confidence: high
+    source_type: non-profit
+    country: US
+
+  - id: theintercept
+    name: The Intercept
+    url: https://theintercept.com/feed/?rss
+    site: https://theintercept.com
+    categories: [us-politics, geopolitics, surveillance]
+    lean: left
+    confidence: high
+    source_type: non-profit
+    country: US
+    notes: "Adversarial investigative outlet; strongly critical of security-state policy."
+
+  - id: propublica
+    name: ProPublica
+    url: https://www.propublica.org/feeds/propublica/main
+    site: https://www.propublica.org
+    categories: [us-politics, investigations]
+    lean: center-left
+    confidence: medium
+    source_type: non-profit
+    country: US
+    notes: "Investigative non-profit; methodology usually published with the story."
+
+  - id: cnbc-tech
+    name: CNBC (Technology)
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    site: https://www.cnbc.com
+    categories: [business, technology, markets]
+    lean: center
+    confidence: medium
+    source_type: broadcaster
+    country: US
+
+  # ------------------------------------------------------------- geopolitics
+  - id: foreignpolicy
+    name: Foreign Policy
+    url: https://foreignpolicy.com/feed/
+    site: https://foreignpolicy.com
+    categories: [geopolitics, world]
+    lean: center
+    confidence: low
+    source_type: magazine
+    country: US
+    notes: "Analysis-heavy; individual pieces carry strong and varied viewpoints."
+
+  # ------------------------------------------------------------------- India
+  - id: thehindu-national
+    name: The Hindu (National)
+    url: https://www.thehindu.com/news/national/feeder/default.rss
+    site: https://www.thehindu.com
+    categories: [india, politics]
+    lean: center-left
+    confidence: low
+    source_type: newspaper
+    country: IN
+    notes: >-
+      Indian political alignment does not map cleanly to US left/right. The Hindu
+      is generally read as left-of-centre and critical of the incumbent BJP.
+
+  - id: indianexpress
+    name: The Indian Express
+    url: https://indianexpress.com/feed/
+    site: https://indianexpress.com
+    categories: [india, politics, general]
+    lean: center
+    confidence: low
+    source_type: newspaper
+    country: IN
+
+  - id: timesofindia
+    name: The Times of India
+    url: https://timesofindia.indiatimes.com/rssfeedstopstories.cms
+    site: https://timesofindia.indiatimes.com
+    categories: [india, general]
+    lean: center
+    confidence: low
+    source_type: newspaper
+    country: IN
+    notes: "Largest-circulation English daily in India; high volume, mixed depth."
+
+  - id: livemint
+    name: Mint
+    url: https://www.livemint.com/rss/news
+    site: https://www.livemint.com
+    categories: [india, business, markets]
+    lean: center
+    confidence: low
+    source_type: newspaper
+    country: IN
+
+  # -------------------------------------------------------------- technology
+  - id: arstechnica
+    name: Ars Technica
+    url: https://feeds.arstechnica.com/arstechnica/index
+    site: https://arstechnica.com
+    categories: [technology, science, linux]
+    lean: center-left
+    confidence: low
+    source_type: trade
+    country: US
+    ownership: "Condé Nast"
+    notes: "Technical depth; lean is mostly visible in tech-policy coverage only."
+
+  - id: theverge
+    name: The Verge
+    url: https://www.theverge.com/rss/index.xml
+    site: https://www.theverge.com
+    categories: [technology, gadgets, ai]
+    lean: center-left
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: techcrunch
+    name: TechCrunch
+    url: https://techcrunch.com/feed/
+    site: https://techcrunch.com
+    categories: [technology, startups, ai, business]
+    lean: center
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: wired
+    name: WIRED
+    url: https://www.wired.com/feed/rss
+    site: https://www.wired.com
+    categories: [technology, science, culture, ai]
+    lean: center-left
+    confidence: medium
+    source_type: magazine
+    country: US
+    ownership: "Condé Nast"
+
+  - id: engadget
+    name: Engadget
+    url: https://www.engadget.com/rss.xml
+    site: https://www.engadget.com
+    categories: [technology, gadgets, gaming]
+    lean: center
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: zdnet
+    name: ZDNET
+    url: https://www.zdnet.com/news/rss.xml
+    site: https://www.zdnet.com
+    categories: [technology, enterprise, linux]
+    lean: center
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: bbc-tech
+    name: BBC News (Technology)
+    url: https://feeds.bbci.co.uk/news/technology/rss.xml
+    site: https://www.bbc.com/news/technology
+    categories: [technology, ai]
+    lean: center
+    confidence: medium
+    source_type: public-broadcaster
+    country: UK
+
+  - id: guardian-tech
+    name: The Guardian (Technology)
+    url: https://www.theguardian.com/technology/rss
+    site: https://www.theguardian.com/technology
+    categories: [technology, ai]
+    lean: center-left
+    confidence: medium
+    source_type: newspaper
+    country: UK
+
+  - id: tomshardware
+    name: Tom's Hardware
+    url: https://www.tomshardware.com/feeds/all
+    site: https://www.tomshardware.com
+    categories: [hardware, nvidia, gpu, technology, gaming]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+    notes: "Hardware/product coverage; political lean is not a meaningful axis here."
+
+  - id: techdirt
+    name: Techdirt
+    url: https://feeds.feedburner.com/Techdirt
+    site: https://www.techdirt.com
+    categories: [technology, policy, surveillance]
+    lean: center-left
+    confidence: medium
+    source_type: blog
+    country: US
+    notes: "Opinionated tech-policy commentary; civil-liberties and anti-monopoly focus."
+
+  - id: hackernews
+    name: Hacker News (front page)
+    url: https://news.ycombinator.com/rss
+    site: https://news.ycombinator.com
+    categories: [technology, programming, startups, linux, ai]
+    lean: not-applicable
+    confidence: high
+    source_type: aggregator
+    country: US
+    notes: >-
+      A community-ranked link aggregator, not a publisher. Items link elsewhere,
+      so source-level bias metadata does not describe the underlying article.
+
+  - id: slashdot
+    name: Slashdot
+    url: https://rss.slashdot.org/Slashdot/slashdotMain
+    site: https://slashdot.org
+    categories: [technology, linux, programming]
+    lean: not-applicable
+    confidence: high
+    source_type: aggregator
+    country: US
+
+  # ------------------------------------------------------ AI / machine learning
+  - id: mit-techreview
+    name: MIT Technology Review
+    url: https://www.technologyreview.com/feed/
+    site: https://www.technologyreview.com
+    categories: [ai, technology, science]
+    lean: center
+    confidence: low
+    source_type: magazine
+    country: US
+    ownership: "Massachusetts Institute of Technology"
+
+  - id: ieee-spectrum-ai
+    name: IEEE Spectrum (AI)
+    url: https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss
+    site: https://spectrum.ieee.org
+    categories: [ai, technology, engineering]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+    ownership: "IEEE (professional body)"
+
+  - id: venturebeat-ai
+    name: VentureBeat (AI)
+    url: https://venturebeat.com/category/ai/feed/
+    site: https://venturebeat.com
+    categories: [ai, technology, business]
+    lean: center
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: marktechpost
+    name: MarkTechPost
+    url: https://www.marktechpost.com/feed/
+    site: https://www.marktechpost.com
+    categories: [ai, research]
+    lean: not-applicable
+    confidence: medium
+    source_type: blog
+    country: US
+
+  - id: huggingface-blog
+    name: Hugging Face Blog
+    url: https://huggingface.co/blog/feed.xml
+    site: https://huggingface.co/blog
+    categories: [ai, research, open-source]
+    lean: not-applicable
+    confidence: high
+    source_type: vendor
+    country: US
+    notes: "First-party vendor/community blog. Promotional interest in its own platform."
+
+  - id: openai-news
+    name: OpenAI News
+    url: https://openai.com/news/rss.xml
+    site: https://openai.com/news
+    categories: [ai, openai, research]
+    lean: not-applicable
+    confidence: high
+    source_type: vendor
+    country: US
+    notes: "First-party corporate announcements. Treat as a primary source, not reporting."
+
+  - id: deepmind-blog
+    name: Google DeepMind Blog
+    url: https://deepmind.google/blog/rss.xml
+    site: https://deepmind.google/discover/blog
+    categories: [ai, research]
+    lean: not-applicable
+    confidence: high
+    source_type: vendor
+    country: UK
+    notes: "First-party corporate announcements."
+
+  - id: nvidia-blog
+    name: NVIDIA Blog
+    url: https://blogs.nvidia.com/feed/
+    site: https://blogs.nvidia.com
+    categories: [nvidia, ai, hardware, gpu]
+    lean: not-applicable
+    confidence: high
+    source_type: vendor
+    country: US
+    notes: "First-party corporate blog. Promotional by construction."
+
+  # ------------------------------------------------------------------- Linux
+  - id: phoronix
+    name: Phoronix
+    url: https://www.phoronix.com/rss.php
+    site: https://www.phoronix.com
+    categories: [linux, open-source, hardware, gpu]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+
+  - id: lwn
+    name: LWN.net
+    url: https://lwn.net/headlines/newrss
+    site: https://lwn.net
+    categories: [linux, kernel, open-source]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+    notes: "Subscriber-funded Linux kernel and community reporting."
+
+  - id: itsfoss
+    name: It's FOSS
+    url: https://itsfoss.com/feed/
+    site: https://itsfoss.com
+    categories: [linux, open-source, desktop]
+    lean: not-applicable
+    confidence: high
+    source_type: blog
+    country: IN
+
+  - id: omgubuntu
+    name: OMG! Ubuntu
+    url: https://www.omgubuntu.co.uk/feed
+    site: https://www.omgubuntu.co.uk
+    categories: [linux, ubuntu, desktop, open-source]
+    lean: not-applicable
+    confidence: high
+    source_type: blog
+    country: UK
+
+  - id: linux-9to5
+    name: 9to5Linux
+    url: https://9to5linux.com/feed
+    site: https://9to5linux.com
+    categories: [linux, open-source, desktop]
+    lean: not-applicable
+    confidence: high
+    source_type: blog
+    country: RO
+
+  - id: kernelnewbies
+    name: Kernel Newbies
+    url: https://kernelnewbies.org/Linux_Kernel_Newbies?action=rss_rc
+    site: https://kernelnewbies.org
+    categories: [linux, kernel]
+    lean: not-applicable
+    confidence: high
+    source_type: non-profit
+    country: US
+    enabled: false
+    notes: "Wiki change feed rather than news. Disabled by default; low signal."
+
+  # ------------------------------------------------------------------ gaming
+  - id: pcgamer
+    name: PC Gamer
+    url: https://www.pcgamer.com/rss/
+    site: https://www.pcgamer.com
+    categories: [gaming, pc, hardware]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: UK
+
+  - id: eurogamer
+    name: Eurogamer
+    url: https://www.eurogamer.net/feed
+    site: https://www.eurogamer.net
+    categories: [gaming]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: UK
+
+  - id: rockpapershotgun
+    name: Rock Paper Shotgun
+    url: https://www.rockpapershotgun.com/feed
+    site: https://www.rockpapershotgun.com
+    categories: [gaming, pc]
+    lean: not-applicable
+    confidence: medium
+    source_type: trade
+    country: UK
+
+  - id: polygon
+    name: Polygon
+    url: https://www.polygon.com/rss/index.xml
+    site: https://www.polygon.com
+    categories: [gaming, culture]
+    lean: center-left
+    confidence: low
+    source_type: trade
+    country: US
+    notes: "Games coverage that engages with cultural/political themes more than peers."
+
+  - id: gamespot
+    name: GameSpot
+    url: https://www.gamespot.com/feeds/news/
+    site: https://www.gamespot.com
+    categories: [gaming]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+
+  - id: ign
+    name: IGN
+    url: https://www.ign.com/rss/articles/feed
+    site: https://www.ign.com
+    categories: [gaming, entertainment]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+
+  - id: kotaku
+    name: Kotaku
+    url: https://kotaku.com/rss
+    site: https://kotaku.com
+    categories: [gaming, culture]
+    lean: center-left
+    confidence: low
+    source_type: trade
+    country: US
+
+  - id: gamesindustry
+    name: GamesIndustry.biz
+    url: https://www.gamesindustry.biz/feed
+    site: https://www.gamesindustry.biz
+    categories: [gaming, business]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: UK
+
+  # ---------------------------------------------------------------- security
+  - id: bleepingcomputer
+    name: BleepingComputer
+    url: https://www.bleepingcomputer.com/feed/
+    site: https://www.bleepingcomputer.com
+    categories: [security, technology, linux]
+    lean: not-applicable
+    confidence: high
+    source_type: trade
+    country: US
+
+  - id: krebs
+    name: Krebs on Security
+    url: https://krebsonsecurity.com/feed/
+    site: https://krebsonsecurity.com
+    categories: [security, investigations]
+    lean: not-applicable
+    confidence: high
+    source_type: blog
+    country: US
+
+  - id: schneier
+    name: Schneier on Security
+    url: https://www.schneier.com/feed/
+    site: https://www.schneier.com
+    categories: [security, privacy, policy]
+    lean: center-left
+    confidence: low
+    source_type: blog
+    country: US
+    notes: "Security analysis; policy posts lean towards civil-liberties positions."
