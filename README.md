@@ -14,6 +14,23 @@ vLLM, LM Studio — anything OpenAI-compatible) and it also works with **no mode
 at all**, falling back to a deterministic extractive engine that can only quote
 sentences that exist in retrieved articles.
 
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/briefing-dark.png">
+  <img alt="Daily-Brief: the Ask box above a personalised briefing with Linux, NVIDIA, AI, security and space sections" src="docs/screenshots/briefing-light.png">
+</picture>
+
+<table>
+  <tr>
+    <td width="50%"><img alt="A grounded answer with numbered citations and the source cards it was built from" src="docs/screenshots/ask-dark.png"></td>
+    <td width="50%"><img alt="One story's coverage across four outlets, and the evidence behind its classification" src="docs/screenshots/coverage-dark.png"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A grounded answer: every sentence comes from a cited article</sub></td>
+    <td align="center"><sub>Cross-outlet coverage and the evidence behind each label</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## 1. Architecture overview
@@ -531,7 +548,7 @@ DAILY_BRIEF_STORAGE_DATA_DIR=/srv/daily-brief
 Config file resolution: `$DAILY_BRIEF_CONFIG` → `./config/config.toml` →
 `<package>/config/config.toml` → `~/.config/daily-brief/config.toml`.
 
-**Sources** — `config/sources.yaml`. 75 feeds ship enabled by default across
+**Sources** — `config/sources.yaml`. 75 feeds ship in the registry (72 enabled by default) across
 world news, US politics, geopolitics, India, technology, AI, Linux, gaming,
 hardware and security, chosen to span the lean scale. Add, remove or disable
 freely; nothing in the code depends on any of them.
