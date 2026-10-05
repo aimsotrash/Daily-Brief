@@ -11,7 +11,9 @@ import re
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from ..models import Article, Source, utcnow
-from ..text import content_hash, extract_entities, normalize_whitespace, simhash, tokenize, truncate
+from ..text import (
+    content_hash, extract_entities, normalize_whitespace, simhash, strip_html, tokenize, truncate,
+)
 from .parser import RawEntry
 
 #: Query parameters that never identify a document.
@@ -62,7 +64,8 @@ def normalize_entry(entry: RawEntry, source: Source) -> Article | None:
     and a resolvable link). Everything else -- missing dates, missing summaries,
     missing authors -- is tolerated and left empty.
     """
-    title = normalize_whitespace(entry.title)
+    # Feeds often double-encode titles, so entities like &#8217; survive XML parsing.
+    title = normalize_whitespace(strip_html(entry.title))
     url = (entry.link or "").strip()
     if not title or not url.lower().startswith(("http://", "https://")):
         return None

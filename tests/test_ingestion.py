@@ -210,6 +210,14 @@ class TestNormalization:
         assert article.content_hash and article.simhash
         assert "NVIDIA" in article.entities
 
+    def test_title_entities_and_tags_are_decoded(self, source):
+        article = normalize_entry(
+            RawEntry(title="Altman says &#8216;some bad things&#8217; will happen &amp; <em>soon</em>",
+                     link="https://tech.test/entities"),
+            source,
+        )
+        assert article.title == "Altman says \u2018some bad things\u2019 will happen & soon"
+
     def test_entry_without_title_is_rejected(self, source):
         assert normalize_entry(RawEntry(title="", link="https://a.test/x"), source) is None
 

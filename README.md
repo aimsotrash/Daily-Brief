@@ -134,7 +134,7 @@ daily-brief/
 │   ├── briefing/generator.py  personalised briefing
 │   └── api/                   FastAPI app + schemas
 ├── web/                       index.html, app.js, styles.css
-└── tests/                     290 tests
+└── tests/                     291 tests
 ```
 
 ---
@@ -565,7 +565,7 @@ without a migration.
 
 ```bash
 .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest tests/ -q          # 290 tests, ~2s
+.venv/bin/python -m pytest tests/ -q          # 291 tests, ~2s
 .venv/bin/python -m pytest tests/ -v          # verbose
 .venv/bin/python -m pytest tests/test_grounding.py
 ```
@@ -597,7 +597,7 @@ It is not part of the pytest run: it needs a live server, a live browser and
 
 ## 13. What was actually tested
 
-**290 automated tests, all passing.**
+**291 automated tests, all passing.**
 
 | Area | Coverage |
 | --- | --- |
