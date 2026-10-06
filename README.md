@@ -134,7 +134,7 @@ daily-brief/
 │   ├── briefing/generator.py  personalised briefing
 │   └── api/                   FastAPI app + schemas
 ├── web/                       index.html, app.js, styles.css
-└── tests/                     291 tests
+└── tests/                     316 tests
 ```
 
 ---
@@ -204,7 +204,7 @@ interested in?"* — free text, not a category picker.
         ↓  parse_interests()
    split → strip conversational filler → map to canonical topics where possible
         ↓
-AI & Machine Learning · Linux & Open Source · Gaming · NVIDIA ·
+AI & Machine Learning · Linux · Gaming · NVIDIA ·
 Geopolitics · US Politics · India
 ```
 
@@ -565,7 +565,7 @@ without a migration.
 
 ```bash
 .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest tests/ -q          # 291 tests, ~2s
+.venv/bin/python -m pytest tests/ -q          # 316 tests, ~3s
 .venv/bin/python -m pytest tests/ -v          # verbose
 .venv/bin/python -m pytest tests/test_grounding.py
 ```
@@ -597,7 +597,7 @@ It is not part of the pytest run: it needs a live server, a live browser and
 
 ## 13. What was actually tested
 
-**291 automated tests, all passing.**
+**316 automated tests, all passing.**
 
 | Area | Coverage |
 | --- | --- |
