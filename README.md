@@ -1,5 +1,7 @@
 # Daily-Brief
 
+[![CI](https://github.com/aimsotrash/Daily-Brief/actions/workflows/ci.yml/badge.svg)](https://github.com/aimsotrash/Daily-Brief/actions/workflows/ci.yml)
+
 A self-hosted, bias-aware personal news briefing and news research application.
 
 Two things, clearly separated:
@@ -489,43 +491,40 @@ Prefer system schedulers? Run with `--no-scheduler` and use timers:
 
 ---
 
-### Deployed setup on this machine
+### Running it as a service
 
-Daily-Brief and Ollama run as **systemd user services**, enabled to start on
-login:
+Daily-Brief (and Ollama, if you use it) can run as **systemd user services**
+that start at login. A minimal unit for the app:
+
+```ini
+# ~/.config/systemd/user/daily-brief.service
+[Unit]
+Description=Daily-Brief
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/daily-brief
+ExecStart=%h/daily-brief/.venv/bin/daily-brief run
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
 
 ```bash
-systemctl --user status daily-brief        # the app, on :8787
-systemctl --user status ollama             # the model server, on :11434
+systemctl --user enable --now daily-brief  # the app, on :8787
 systemctl --user restart daily-brief       # after editing config.toml
 journalctl --user -u daily-brief -f        # follow logs
 ```
 
-| | |
-| --- | --- |
-| UI | <http://127.0.0.1:8787/> |
-| Database | `~/.local/share/daily-brief/daily_brief.db` |
-| Models | `~/.local/share/ollama/models` |
-| Unit files | `~/.config/systemd/user/{daily-brief,ollama}.service` |
-| Installed models | `qwen2.5:7b-instruct` (default), `llama3.2:3b` (faster) |
-
-`~/.local/bin` was added to PATH (fish via `~/.config/fish/conf.d/local-bin.fish`,
-bash via `~/.bashrc`), so `daily-brief` and `ollama` are on PATH in new shells.
-
-To switch models, edit `model` in `config/config.toml` (or set
-`DAILY_BRIEF_LLM_MODEL`) and `systemctl --user restart daily-brief`.
+The database lives at `~/.local/share/daily-brief/daily_brief.db`. To switch
+models, edit `model` in `config/config.toml` (or set `DAILY_BRIEF_LLM_MODEL`)
+and restart the service.
 
 **Note on scheduling:** user services start at login and stop at logout, so the
-06:30 briefing job only fires if you are logged in. This rarely matters — the
-app regenerates a stale briefing on demand when you open it. To have it run
-regardless of login: `sudo loginctl enable-linger nikhil`.
-
-To remove the services entirely:
-
-```bash
-systemctl --user disable --now daily-brief ollama
-rm ~/.config/systemd/user/{daily-brief,ollama}.service
-```
+06:30 briefing job only fires while you are logged in. This rarely matters — the
+app regenerates a stale briefing on demand when you open it. To keep it running
+regardless: `sudo loginctl enable-linger "$USER"`.
 
 ---
 
