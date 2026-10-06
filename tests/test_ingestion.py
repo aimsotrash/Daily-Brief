@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from daily_brief.models import utcnow
+from daily_brief.analysis.topics import classify
+from daily_brief.models import Source, utcnow
 from daily_brief.news import dedupe
 from daily_brief.news.ingest import NewsIngestor
 from daily_brief.news.normalize import canonical_url, normalize_entries, normalize_entry
@@ -262,6 +263,27 @@ class TestNormalization:
             RawEntry(title="Undated", link="https://tech.test/u"),
         ]
         assert len(normalize_entries(entries, source, limit=10)) == 2
+
+
+class TestTopicClassification:
+    def test_an_ambiguous_word_does_not_file_a_story_under_linux(self):
+        # "distribution" here is TV distribution. Together with a tech outlet's
+        # source tags it used to add Linux as a second topic.
+        article = make_article(
+            "Cable lobby to sue FCC over repeal of national TV ownership cap",
+            summary="The cable industry says Congress set the limit on broadcast "
+                    "distribution, so the FCC cannot repeal it. Senators and the White House weighed in.",
+        )
+        article.source = Source(id="ars", name="Ars", url="https://ars.test/feed",
+                                categories=["technology", "science", "linux"])
+        assert "linux" not in classify(article)
+
+    def test_a_real_linux_story_is_still_filed_under_linux(self):
+        article = make_article(
+            "Rocky Linux 10.1 ships with a newer kernel",
+            summary="The Linux distribution moved to kernel 6.18 and refreshed its GNOME desktop.",
+        )
+        assert classify(article)[0] == "linux"
 
 
 # ---------------------------------------------------------------- dedup

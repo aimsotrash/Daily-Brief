@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from ..analysis.relevance import MATCH_THRESHOLD, Interest, score_interests
 from ..analysis.summarize import summarize_article, summarize_group
@@ -30,12 +30,16 @@ from ..llm.prompts import build_briefing_prompt
 from ..models import Article, StoryGroup
 from ..repository import ArticleRepository, BriefingRepository
 from ..search.answer import CITATION_RE, article_to_source, build_coverage
-from ..text import truncate
+from ..text import tokenize, truncate
 
 log = logging.getLogger(__name__)
 
 #: An article must reach this interest score to enter a personalised briefing.
 INTEREST_THRESHOLD = 0.4
+
+#: A headline word used by at most this many stories in the pool is
+#: distinctive: a name like "OpenRadioss", not a word like "AI".
+DISTINCTIVE_MAX_STORIES = 6
 
 
 class BriefingGenerator:
@@ -227,6 +231,8 @@ class BriefingGenerator:
         per_source_cap = max(2, cfg.max_stories_per_section // 2)
         source_counts: dict[tuple[str, str], int] = defaultdict(int)
         used: set[str] = set()
+        placed_headlines: list[set[str]] = []
+        distinctive = _distinctive_words(group.lead.title for group, _, _ in groups)
         total = 0
 
         def has_room(label: str, source_id: str) -> bool:
@@ -240,6 +246,11 @@ class BriefingGenerator:
                 break
             key = group.lead.canonical_url or group.lead.url
             if key in used:
+                continue
+            # Outlets word one event differently enough that clustering keeps
+            # them apart; the briefing still gives the event one slot.
+            headline = set(tokenize(group.lead.title))
+            if any(_same_event(headline, other, distinctive) for other in placed_headlines):
                 continue
             source_id = group.lead.source_id
 
@@ -264,6 +275,7 @@ class BriefingGenerator:
             buckets[section].append((group, score, ranked_labels))
             source_counts[(section, source_id)] += 1
             used.add(key)
+            placed_headlines.append(headline)
             total += 1
 
         # Order sections by the user's interest order, then by aggregate score.
@@ -401,3 +413,22 @@ class BriefingGenerator:
             "lookback_hours": self.config.briefing.lookback_hours,
             "empty_reason": reason,
         }
+
+
+def _distinctive_words(headlines: Iterable[str]) -> set[str]:
+    """Headline words rare enough in this pool to identify a particular event."""
+    counts: dict[str, int] = defaultdict(int)
+    for headline in headlines:
+        for word in set(tokenize(headline)):
+            counts[word] += 1
+    return {
+        word
+        for word, count in counts.items()
+        if count <= DISTINCTIVE_MAX_STORIES and len(word) >= 4 and not word.isdigit()
+    }
+
+
+def _same_event(left: set[str], right: set[str], distinctive: set[str]) -> bool:
+    """Two headlines describe one event when they share a distinctive word and more."""
+    shared = left & right
+    return len(shared) >= 2 and bool(shared & distinctive)

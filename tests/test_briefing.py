@@ -84,7 +84,7 @@ class TestPersonalization:
     async def test_sections_are_named_after_interests(self, mixed_corpus):
         payload = await generator(mixed_corpus).generate(parse_interests("Linux, AI"))
         titles = {section["title"] for section in payload["sections"]}
-        assert titles <= {"Linux & Open Source", "AI & Machine Learning"}
+        assert titles <= {"Linux", "AI & Machine Learning"}
 
     async def test_stories_land_in_their_best_matching_section(self, mixed_corpus):
         payload = await generator(mixed_corpus).generate(parse_interests("AI, Linux"))
@@ -93,7 +93,7 @@ class TestPersonalization:
             for section in payload["sections"]
         }
         assert any("OpenAI" in t for t in by_section.get("AI & Machine Learning", []))
-        assert any("Linux 7.3" in t for t in by_section.get("Linux & Open Source", []))
+        assert any("Linux 7.3" in t for t in by_section.get("Linux", []))
 
     async def test_no_interests_still_produces_a_briefing(self, mixed_corpus):
         payload = await generator(mixed_corpus).generate([])
@@ -101,7 +101,7 @@ class TestPersonalization:
 
     async def test_interests_are_recorded_in_the_payload(self, mixed_corpus):
         payload = await generator(mixed_corpus).generate(parse_interests("Linux"))
-        assert payload["interests"] == ["Linux & Open Source"]
+        assert payload["interests"] == ["Linux"]
 
 
 class TestGroupingAndDedup:
@@ -136,6 +136,47 @@ class TestGroupingAndDedup:
         payload = await generator(app).generate(parse_interests("Linux"))
         titles = [s["title"] for sec in payload["sections"] for s in sec["stories"]]
         assert len(titles) == len(set(titles))
+
+    async def test_one_event_gets_one_slot_however_outlets_word_it(self, app):
+        # Differently worded headlines land in separate clusters, and each one
+        # matches a different interest. The event should still appear once.
+        app.article_repo.upsert_many([
+            make_article(
+                "After Siemens re-licenses OpenRadioss, Rocky Linux announces a fork",
+                source_id="linux-weekly", source_name="Linux Weekly",
+                summary="Rocky Linux forked the OpenRadioss solver after Siemens closed it.",
+                topics=["linux", "open-source"], entities=["Siemens", "OpenRadioss"],
+                age_hours=2,
+            ),
+            make_article(
+                "Siemens abruptly takes down OpenRadioss, but a fork is already live",
+                source_id="tech-daily", source_name="Tech Daily",
+                summary="Siemens pulled the open-source OpenRadioss project; a community fork is live.",
+                topics=["open-source"], entities=["Siemens", "OpenRadioss"], age_hours=3,
+            ),
+            make_article(
+                "GNOME 49 ships with Wayland fixes", source_id="linux-weekly",
+                summary="The GNOME desktop released version 49 with Wayland fixes.",
+                topics=["linux"], age_hours=4,
+            ),
+        ])
+        payload = await generator(app).generate(parse_interests("Linux, open source"))
+        titles = [s["title"] for sec in payload["sections"] for s in sec["stories"]]
+        assert sum("OpenRadioss" in t for t in titles) == 1
+        assert any("GNOME 49" in t for t in titles)
+
+    async def test_different_stories_about_one_company_both_appear(self, app):
+        app.article_repo.upsert_many([
+            make_article("NVIDIA launches the RTX 6090", source_id="tech-daily",
+                         summary="NVIDIA launched its next flagship graphics card.",
+                         topics=["nvidia"], entities=["NVIDIA"], age_hours=2),
+            make_article("NVIDIA faces an antitrust probe in Europe", source_id="left-post",
+                         summary="European regulators opened an antitrust probe into NVIDIA.",
+                         topics=["nvidia"], entities=["NVIDIA"], age_hours=3),
+        ])
+        payload = await generator(app).generate(parse_interests("NVIDIA"))
+        titles = [s["title"] for sec in payload["sections"] for s in sec["stories"]]
+        assert len([t for t in titles if "NVIDIA" in t]) == 2
 
     async def test_multi_outlet_stories_rank_above_single_outlet_ones(self, app):
         app.article_repo.upsert_many([

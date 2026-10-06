@@ -40,7 +40,7 @@ class TestSaveAndLoad:
         reloaded = service(db).load()
         assert reloaded.onboarded is True
         assert "AI & Machine Learning" in reloaded.interests
-        assert "Linux & Open Source" in reloaded.interests
+        assert "Linux" in reloaded.interests
         assert "Gaming" in reloaded.interests
 
     def test_keeps_raw_text_for_editing(self, db):
@@ -83,7 +83,7 @@ class TestModify:
         svc = service(db)
         svc.save_interests("AI")
         prefs = svc.update(interests="Linux, gaming")
-        assert "Linux & Open Source" in prefs.interests
+        assert "Linux" in prefs.interests
         assert "AI & Machine Learning" not in prefs.interests
 
 
@@ -107,7 +107,7 @@ class TestInterestParsing:
 
     def test_comma_separated(self):
         labels = [i.label for i in parse_interests("AI, Linux, gaming")]
-        assert labels == ["AI & Machine Learning", "Linux & Open Source", "Gaming"]
+        assert labels == ["AI & Machine Learning", "Linux", "Gaming"]
 
     def test_natural_language_sentence(self):
         interests = parse_interests(
@@ -123,7 +123,7 @@ class TestInterestParsing:
 
     def test_newline_and_bullet_separated(self):
         labels = [i.label for i in parse_interests("• AI\n• Linux\n• Gaming")]
-        assert labels == ["AI & Machine Learning", "Linux & Open Source", "Gaming"]
+        assert labels == ["AI & Machine Learning", "Linux", "Gaming"]
 
     def test_deduplicates_case_insensitively(self):
         assert len(parse_interests("AI, ai, A.I., artificial intelligence")) <= 2

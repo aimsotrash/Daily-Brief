@@ -28,15 +28,16 @@ LEXICON: dict[str, list[str]] = {
     ],
     "linux": [
         "linux", "kernel", "ubuntu", "debian", "fedora", "arch linux", "gnome", "kde",
-        "plasma", "systemd", "wayland", "x11", "xorg", "distro", "distribution",
-        "gnu", "bash", "btrfs", "ext4", "zfs", "mesa", "steamos", "nixos", "opensuse",
-        "red hat", "rhel", "centos", "linus torvalds", "flatpak", "snap", "appimage",
-        "pipewire", "proton", "wine", "immutable", "kde plasma",
+        "systemd", "wayland", "x11", "xorg", "distro", "distros", "linux distribution",
+        "gnu", "bash script", "btrfs", "ext4", "zfs", "mesa", "steamos", "nixos", "opensuse",
+        "red hat", "rhel", "centos", "linus torvalds", "flatpak", "snap package", "snapcraft",
+        "appimage", "pipewire", "steam proton", "proton-ge", "winehq", "immutable distro",
+        "kde plasma",
     ],
     "open-source": [
         "open source", "open-source", "foss", "gpl", "apache license", "mit license",
-        "free software", "copyleft", "fork", "upstream", "maintainer", "git",
-        "github", "gitlab", "contributor", "cla", "sbom",
+        "free software", "copyleft", "fork", "upstream project", "maintainer", "git",
+        "github", "gitlab", "open-source contributor", "sbom",
     ],
     "gaming": [
         "game", "games", "gaming", "gamer", "playstation", "ps5", "xbox", "nintendo",
@@ -151,7 +152,7 @@ LEXICON: dict[str, list[str]] = {
 #: Human-readable section headings for the briefing.
 TOPIC_LABELS: dict[str, str] = {
     "ai": "AI & Machine Learning",
-    "linux": "Linux & Open Source",
+    "linux": "Linux",
     "open-source": "Open Source",
     "gaming": "Gaming",
     "hardware": "Hardware & Chips",
