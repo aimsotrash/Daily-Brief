@@ -110,6 +110,42 @@ class TestQueryUnderstanding:
     def test_follow_up_without_history_still_parses(self):
         assert parse_query("Only the biggest ones").intent in {"follow_up", "search"}
 
+    @pytest.mark.parametrize(
+        "question",
+        [
+            "What's new with NVIDIA this week?",
+            "Why did NVIDIA stock fall?",
+            "Only the biggest ones",
+            "How are different sources covering this?",
+        ],
+    )
+    def test_nothing_is_a_follow_up_without_earlier_turns(self, question):
+        intent, follow_up = detect_intent(question)
+        assert follow_up is False
+        assert intent != "follow_up"
+
+    @pytest.mark.parametrize(
+        "question,expected",
+        [
+            ("Only the biggest ones", True),
+            ("What about Intel?", True),
+            ("Why?", True),
+            ("Why did they do that?", True),
+            ("Tell me more about the story", True),
+            ("Why did NVIDIA stock fall?", False),
+            ("What's new with NVIDIA this week?", False),
+            ("What happened this morning?", False),
+        ],
+    )
+    def test_follow_up_detection_with_earlier_turns(self, question, expected):
+        assert detect_intent(question, has_history=True)[1] is expected
+
+    def test_contractions_and_possessives_are_not_keywords(self):
+        assert parse_query("What's new in auto-cpufreq?").keywords == ["auto-cpufreq"]
+        keywords = parse_query("Why are NVIDIA's earnings up?").keywords
+        assert "earnings" in keywords
+        assert not any("'" in keyword for keyword in keywords)
+
 
 class TestMatchExpression:
     def test_anchors_on_entities_when_present(self):
@@ -216,6 +252,39 @@ class TestRetrieval:
         coverage = retriever.coverage_for(lead)
         assert len(coverage) == 2
         assert len({a.source_id for a in coverage}) == 2
+
+    def test_a_precise_match_is_not_padded_with_name_only_matches(self, corpus):
+        corpus.article_repo.upsert_many([
+            make_article(
+                "Nvidia's Groq deal faces a shareholder lawsuit",
+                source_id="right-herald", source_name="The Right Herald",
+                summary="Groq stockholders filed a lawsuit over the Nvidia deal.",
+                entities=["Nvidia", "Groq"],
+            )
+        ])
+        results = self._retriever(corpus).retrieve(parse_query("Groq lawsuit against Nvidia"))
+        assert [r.article.title for r in results] == [
+            "Nvidia's Groq deal faces a shareholder lawsuit"
+        ]
+
+    def test_an_incidental_shared_word_does_not_pad_the_answer(self, app):
+        app.article_repo.upsert_many([
+            make_article("Auto-CPUFreq 3.2 adds dynamic boost controls",
+                         summary="The auto-cpufreq power manager gained new boost settings."),
+            make_article("What's going to happen in the midterms?",
+                         summary="What's at stake as voters head to the polls."),
+        ])
+        results = Retriever(app.article_repo, app.config.search).retrieve(
+            parse_query("What's new in auto-cpufreq?")
+        )
+        assert [r.article.title for r in results] == [
+            "Auto-CPUFreq 3.2 adds dynamic boost controls"
+        ]
+
+    def test_a_question_about_two_names_keeps_articles_about_either(self, corpus):
+        titles = {r.article.title for r in self._retriever(corpus).retrieve(parse_query("NVIDIA and Linux"))}
+        assert any("NVIDIA" in title for title in titles)
+        assert any("Linux" in title for title in titles)
 
     def test_widens_the_window_rather_than_returning_nothing(self, app):
         app.article_repo.upsert_many([

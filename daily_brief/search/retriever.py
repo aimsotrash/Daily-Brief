@@ -35,6 +35,10 @@ _FTS_SAFE = re.compile(r"^[A-Za-z0-9_]+$")
 #: unless it matched one of the query's named entities outright.
 MIN_COVERAGE = 0.34
 
+#: Hits must cover at least this fraction of what the best hit covers. A
+#: precise match should not be padded with articles that share one word.
+RELATIVE_COVERAGE = 0.5
+
 #: Widest fallback window. Nothing older than the retention horizon is stored,
 #: so this effectively means "search everything we have".
 MAX_WINDOW_HOURS = 24 * 60
@@ -118,17 +122,18 @@ def _entity_score(article: Article, parsed: ParsedQuery) -> float:
     return min(1.0, hits / max(1, len(parsed.entities)))
 
 
-def _coverage(article: Article, parsed: ParsedQuery) -> tuple[float, bool]:
+def _coverage(article: Article, parsed: ParsedQuery) -> tuple[float, bool, bool]:
     """How much of the query the article actually contains.
 
-    Returns ``(weighted coverage in 0..1, matched at least one entity)``.
+    Returns ``(weighted coverage in 0..1, matched at least one entity,
+    matched at least one non-entity keyword)``.
     Without this, an OR-ed expression lets an article through on a single
     incidental common word -- "quantum banana treaty" matching a story about a
     python found in a banana plantation.
     """
     terms = parsed.all_terms
     if not terms:
-        return (0.0, False)
+        return (0.0, False, False)
 
     haystack = fold(
         " ".join(
@@ -144,7 +149,7 @@ def _coverage(article: Article, parsed: ParsedQuery) -> tuple[float, bool]:
     entity_keys = {fold(e) for e in parsed.entities}
 
     total = matched = 0.0
-    entity_hit = False
+    entity_hit = keyword_hit = False
     for term in terms:
         key = fold(term)
         weight = 1.5 if key in entity_keys else 1.0
@@ -153,7 +158,9 @@ def _coverage(article: Article, parsed: ParsedQuery) -> tuple[float, bool]:
             matched += weight
             if key in entity_keys:
                 entity_hit = True
-    return (matched / total if total else 0.0, entity_hit)
+            else:
+                keyword_hit = True
+    return (matched / total if total else 0.0, entity_hit, keyword_hit)
 
 
 def _topic_score(article: Article, parsed: ParsedQuery) -> float:
@@ -218,14 +225,26 @@ class Retriever:
         interests: Sequence[Interest] | None,
         now: datetime,
     ) -> list[ScoredArticle]:
-        scored: list[ScoredArticle] = []
+        candidates: list[tuple[Article, float, float, bool, bool]] = []
         for article, lexical in hits:
-            coverage, entity_hit = _coverage(article, parsed)
+            coverage, entity_hit, keyword_hit = _coverage(article, parsed)
             # An article must genuinely cover the query, not merely share one
             # incidental word with it.
             if not entity_hit and coverage < MIN_COVERAGE:
                 continue
+            candidates.append((article, lexical, coverage, entity_hit, keyword_hit))
 
+        # When some hits match what the question asks about as well as the
+        # names in it, hits that only share a name are padding: "Groq lawsuit
+        # against Nvidia" should not list every Nvidia story.
+        if any(entity_hit and keyword_hit for _, _, _, entity_hit, keyword_hit in candidates):
+            candidates = [c for c in candidates if c[4]]
+        if candidates:
+            best = max(coverage for _, _, coverage, _, _ in candidates)
+            candidates = [c for c in candidates if c[2] >= RELATIVE_COVERAGE * best]
+
+        scored: list[ScoredArticle] = []
+        for article, lexical, coverage, _, _ in candidates:
             recency = recency_score(article, now)
             entity = _entity_score(article, parsed)
             topic = _topic_score(article, parsed)

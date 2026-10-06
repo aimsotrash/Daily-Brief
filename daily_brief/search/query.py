@@ -35,17 +35,34 @@ _SUMMARY_RE = re.compile(
     r"\b(summar(?:ise|ize|y)|tl;?dr|recap|catch me up|what did i miss|brief me)\b",
     re.IGNORECASE,
 )
-_FOLLOWUP_RE = re.compile(
+#: Openings that only make sense as a continuation of the conversation.
+_CONTINUATION_RE = re.compile(
     r"^\s*(?:and |but |so |ok(?:ay)? )?(?:what about|how about|only|just|now|"
     r"more|tell me more|expand|go deeper|and (?:the )?(?:rest|others)|"
-    r"show me (?:the )?(?:biggest|most|top|other)|why|who|when|where|which one)\b",
+    r"show me (?:the )?(?:biggest|most|top|other)|which one)\b",
+    re.IGNORECASE,
+)
+#: A bare "why/who/when/where" continues the conversation only when the
+#: question names no subject of its own ("why?" vs "why did NVIDIA fall?").
+_BARE_QUESTION_RE = re.compile(r"^\s*(?:and |but |so )?(?:why|who|when|where)\b", re.IGNORECASE)
+#: Phrases that point back at an earlier answer whatever else the question says.
+_BACK_REFERENCE_RE = re.compile(
+    r"\b(the story|this story|that story|these stories|those stories|the same|above|"
+    r"the (?:first|second|third|last) one)\b",
     re.IGNORECASE,
 )
 _PRONOUN_RE = re.compile(
-    r"\b(this|that|those|these|it|its|they|them|their|he|she|his|her|the story|"
-    r"the same|above)\b",
+    r"\b(this|that|those|these|it|its|they|them|their|he|she|his|her)\b",
     re.IGNORECASE,
 )
+#: "this week", "that morning": demonstratives that set a time, not refer back.
+_TIME_DEMONSTRATIVE_RE = re.compile(
+    r"\b(?:this|that|these|those)\s+(?:morning|afternoon|evening|night|week(?:end)?|"
+    r"month|year|quarter|season|days?|time)\b",
+    re.IGNORECASE,
+)
+#: Possessive or contraction suffix: "nvidia's" -> "nvidia", "what's" -> "what".
+_POSSESSIVE_RE = re.compile(r"['’]s$")
 
 _TIME_PATTERNS: list[tuple[re.Pattern[str], int]] = [
     (re.compile(r"\b(right now|breaking|last hour|past hour)\b", re.I), 6),
@@ -98,10 +115,12 @@ class ParsedQuery:
         }
 
 
-def detect_intent(question: str) -> tuple[Intent, bool]:
-    follow_up = bool(_FOLLOWUP_RE.match(question)) or (
-        bool(_PRONOUN_RE.search(question)) and len(question.split()) <= 12
-    )
+def detect_intent(question: str, *, has_history: bool = False) -> tuple[Intent, bool]:
+    """Classify the question, and say whether it depends on earlier turns.
+
+    Without earlier turns nothing can be a follow-up, however it is phrased.
+    """
+    follow_up = has_history and _is_follow_up(question)
     if _COMPARE_RE.search(question):
         return ("compare_coverage", follow_up)
     if _SUMMARY_RE.search(question):
@@ -109,6 +128,34 @@ def detect_intent(question: str) -> tuple[Intent, bool]:
     if follow_up:
         return ("follow_up", True)
     return ("search", False)
+
+
+def _is_follow_up(question: str) -> bool:
+    if _CONTINUATION_RE.match(question) or _BACK_REFERENCE_RE.search(question):
+        return True
+    # A question that names its own subject stands on its own.
+    if extract_entities(question, limit=1):
+        return False
+    if _BARE_QUESTION_RE.match(question):
+        return True
+    unanchored = _TIME_DEMONSTRATIVE_RE.sub(" ", question)
+    return bool(_PRONOUN_RE.search(unanchored)) and len(question.split()) <= 12
+
+
+def _content_keywords(text: str, exclude: set[str] | None = None) -> list[str]:
+    """Search terms from free text: function words, query filler and contractions dropped."""
+    out: list[str] = []
+    for token in tokenize(text, drop_stopwords=False):
+        token = _POSSESSIVE_RE.sub("", token)
+        if "'" in token or "’" in token:
+            continue  # "don't", "they're": never a search term
+        if token in STOPWORDS or token in QUERY_NOISE or token in (exclude or set()):
+            continue
+        if len(token) < 3 and not token.isdigit():
+            continue
+        if token not in out:
+            out.append(token)
+    return out
 
 
 def detect_time_window(question: str) -> int:
@@ -125,7 +172,7 @@ def parse_query(question: str, history: Sequence[dict] | None = None) -> ParsedQ
     if not question:
         return parsed
 
-    intent, follow_up = detect_intent(question)
+    intent, follow_up = detect_intent(question, has_history=bool(history))
     parsed.intent = intent
     parsed.is_follow_up = follow_up
     parsed.time_window_hours = detect_time_window(question)
@@ -133,15 +180,7 @@ def parse_query(question: str, history: Sequence[dict] | None = None) -> ParsedQ
     parsed.entities = extract_entities(question, limit=8)
     entity_tokens = {t for e in parsed.entities for t in tokenize(e)}
 
-    keywords: list[str] = []
-    for token in tokenize(question, drop_stopwords=False):
-        if token in STOPWORDS or token in QUERY_NOISE or token in entity_tokens:
-            continue
-        if len(token) < 3 and not token.isdigit():
-            continue
-        if token not in keywords:
-            keywords.append(token)
-    parsed.keywords = keywords[:10]
+    parsed.keywords = _content_keywords(question, exclude=entity_tokens)[:10]
 
     scores = score_topics(question)
     parsed.topics = [
@@ -164,11 +203,7 @@ def _inherit_context(parsed: ParsedQuery, history: Sequence[dict]) -> ParsedQuer
             continue
         prior = turn.get("content") or ""
         prior_entities = extract_entities(prior, limit=6)
-        prior_keywords = [
-            t
-            for t in tokenize(prior, drop_stopwords=False)
-            if t not in STOPWORDS and t not in QUERY_NOISE and len(t) >= 3
-        ][:8]
+        prior_keywords = _content_keywords(prior)[:8]
         if not prior_entities and not prior_keywords:
             continue
         for entity in prior_entities:
@@ -255,8 +290,9 @@ async def refine_with_llm(
         "summarize",
         "follow_up",
     }:
-        # Trust the heuristic when it positively detected a comparison request.
-        if parsed.intent == "search":
+        # Trust the heuristic when it positively detected a comparison request,
+        # and never call a question a follow-up when nothing came before it.
+        if parsed.intent == "search" and (intent != "follow_up" or history):
             parsed.intent = intent
 
     parsed.entities = parsed.entities[:12]
