@@ -200,8 +200,8 @@ def extractive_answer(
     header = (
         f"Here's what {len(groups)} retrieved "
         f"{'story' if len(groups) == 1 else 'stories'} say. "
-        "This is assembled directly from the article text (no model is configured "
-        "or reachable), so it reads as extracts rather than prose."
+        "It is assembled directly from the article text, so it reads as extracts "
+        "rather than prose."
     )
 
     lines: list[str] = [header, ""]

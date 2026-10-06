@@ -828,6 +828,7 @@ async function openSettings() {
   input.value = state.prefs?.raw_interests_text || (state.prefs?.interests || []).join(", ");
   $("#settings-error").hidden = true;
   renderParsedChips(state.prefs?.parsed || []);
+  input.oninput = previewInterests;
   input.focus();
 
   const status = await loadStatus();
@@ -837,11 +838,12 @@ async function openSettings() {
         status.articles.last_24h} in the last 24h</dd>
       <dt>sources</dt><dd>${status.sources.enabled} of ${status.sources.total} enabled${
         status.sources.failing.length ? ` · ${status.sources.failing.length} failing` : ""}</dd>
-      <dt>model</dt><dd>${esc(status.llm.provider)}${
-        status.llm.model ? " · " + esc(status.llm.model) : ""} — ${
-        status.llm.available
-          ? "<span class='s-ok'>reachable</span>"
-          : "<span class='s-off'>unreachable, using the extractive engine</span>"}</dd>
+      <dt>model</dt><dd>${status.llm.provider === "none"
+        ? "<span class='s-off'>off</span> — answers and summaries use the extractive engine"
+        : `${esc(status.llm.provider)}${status.llm.model ? " · " + esc(status.llm.model) : ""} — ${
+          status.llm.available
+            ? "<span class='s-ok'>reachable</span>"
+            : "<span class='s-off'>unreachable, using the extractive engine</span>"}`}</dd>
       <dt>briefing</dt><dd>${status.briefing.story_count} stories · ${
         status.briefing.generated_at ? relTime(status.briefing.generated_at) : "never generated"}</dd>
       <dt>scheduler</dt><dd>${
@@ -893,6 +895,23 @@ function renderSourceList() {
         <span class="s-state ${cls}">${esc(label)}</span>
       </div>`;
   }).join("");
+}
+
+/* Show how the interests will be read while the user is still typing, using
+   the same parser that saving does. Only the latest keystroke's answer lands. */
+let previewTimer = null;
+function previewInterests() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(async () => {
+    const text = $("#settings-interests").value.trim();
+    if (!text) { renderParsedChips([]); return; }
+    try {
+      const data = await api("/api/preferences/preview", {
+        method: "POST", body: JSON.stringify({ interests: text }),
+      });
+      if ($("#settings-interests").value.trim() === text) renderParsedChips(data.parsed);
+    } catch { /* keep the last preview */ }
+  }, 250);
 }
 
 function renderParsedChips(parsed) {

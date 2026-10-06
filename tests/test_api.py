@@ -72,6 +72,13 @@ class TestOnboarding:
         assert "India" in payload["interests"]
         assert payload["parsed"]
 
+    def test_preview_interprets_interests_without_saving(self, client):
+        response = client.post("/api/preferences/preview", json={"interests": "AI, Linux"})
+        assert response.status_code == 200
+        labels = [item["label"] for item in response.json()["parsed"]]
+        assert labels == ["AI & Machine Learning", "Linux"]
+        assert client.get("/api/preferences").json()["onboarded"] is False
+
     def test_onboarding_persists(self, client):
         client.post("/api/preferences", json={"interests": "AI, Linux"})
         assert client.get("/api/preferences").json()["onboarded"] is True

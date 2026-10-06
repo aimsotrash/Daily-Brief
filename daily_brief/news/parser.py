@@ -77,6 +77,18 @@ def _text(element: ET.Element | None) -> str:
     return normalize_whitespace("".join(element.itertext()))
 
 
+def _markup(element: ET.Element | None) -> str:
+    """Element text with its line structure intact, for strip_html to clean.
+
+    Collapsing whitespace here, as :func:`_text` does, would run plain-text
+    lists ("- item" lines, as Slashdot writes them) together before
+    normalization can tidy them.
+    """
+    if element is None:
+        return ""
+    return "".join(element.itertext())
+
+
 def _find(parent: ET.Element, *names: str) -> ET.Element | None:
     """Namespace-insensitive child lookup by local name."""
     wanted = {n.lower() for n in names}
@@ -217,8 +229,8 @@ def _parse_entry(item: ET.Element, *, atom: bool) -> RawEntry | None:
 
     summary_node = _find(item, "description", "summary", "subtitle")
     content_node = _find(item, "encoded", "content", "content:encoded")
-    summary = strip_html(_text(summary_node))
-    content = strip_html(_text(content_node))
+    summary = strip_html(_markup(summary_node))
+    content = strip_html(_markup(content_node))
     # Atom <content> and RSS <description> are sometimes the same string.
     if content and summary and content.startswith(summary[: max(40, len(summary) // 2)]):
         summary = summary if len(summary) < len(content) else ""

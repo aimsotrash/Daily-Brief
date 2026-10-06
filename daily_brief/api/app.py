@@ -14,6 +14,7 @@ from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..analysis.relevance import parse_interests
 from ..config import Config
 from ..scheduler import BriefingScheduler
 from ..service import Application
@@ -103,6 +104,12 @@ def create_app(
             parsed=[i.to_dict() for i in svc.preferences.interests()],
             updated_at=prefs.updated_at.isoformat(),
         )
+
+    @api.post("/api/preferences/preview")
+    def preview_preferences(payload: OnboardingRequest) -> dict:
+        """Interpret interests without saving them, so Settings can show the
+        result while the user is still typing."""
+        return {"parsed": [i.to_dict() for i in parse_interests(payload.interests)]}
 
     @api.post("/api/preferences/reset", response_model=PreferencesResponse)
     def reset_preferences() -> PreferencesResponse:

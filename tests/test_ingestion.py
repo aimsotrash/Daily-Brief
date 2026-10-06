@@ -9,7 +9,7 @@ import pytest
 from daily_brief.analysis.topics import classify
 from daily_brief.models import Source, utcnow
 from daily_brief.news import dedupe
-from daily_brief.news.ingest import NewsIngestor
+from daily_brief.news.ingest import IngestReport, NewsIngestor
 from daily_brief.news.normalize import canonical_url, normalize_entries, normalize_entry
 from daily_brief.news.parser import FeedParseError, RawEntry, parse_date, parse_feed
 from daily_brief.news.sources import RegistryError, parse_registry
@@ -219,6 +219,49 @@ class TestNormalization:
         )
         assert article.title == "Altman says \u2018some bad things\u2019 will happen & soon"
 
+    def test_paywall_marker_is_stripped_from_titles(self, source):
+        article = normalize_entry(
+            RawEntry(title="[$] An update on the Sashiko patch-review system",
+                     link="https://lwn.test/sashiko"),
+            source,
+        )
+        assert article.title == "An update on the Sashiko patch-review system"
+
+    def test_plain_text_bullet_lists_become_sentences(self, source):
+        summary = (
+            "- In 2022 Altair open sourced OpenRadioss. \n\n"
+            "- Siemens acquired Altair last year \n\n"
+            "- Siemens closed access to OpenRadioss. \n\n"
+            "A community fork followed."
+        )
+        article = normalize_entry(
+            RawEntry(title="OpenRadioss forked", link="https://slashdot.test/openradioss",
+                     summary=summary),
+            source,
+        )
+        assert article.summary == (
+            "In 2022 Altair open sourced OpenRadioss. Siemens acquired Altair last year. "
+            "Siemens closed access to OpenRadioss. A community fork followed."
+        )
+
+    def test_bullet_lists_survive_feed_parsing_as_sentences(self, source):
+        # The same list as above, but through the real feed parser.
+        feed = parse_feed(build_rss([{
+            "title": "OpenRadioss forked",
+            "link": "https://slashdot.test/openradioss",
+            "description": (
+                "- In 2022 Altair open sourced OpenRadioss. \n\n"
+                "- Siemens acquired Altair last year \n\n"
+                "- Siemens closed access to OpenRadioss. \n\n"
+                "A community fork followed."
+            ),
+        }]))
+        article = normalize_entry(feed.entries[0], source)
+        assert article.summary == (
+            "In 2022 Altair open sourced OpenRadioss. Siemens acquired Altair last year. "
+            "Siemens closed access to OpenRadioss. A community fork followed."
+        )
+
     def test_entry_without_title_is_rejected(self, source):
         assert normalize_entry(RawEntry(title="", link="https://a.test/x"), source) is None
 
@@ -284,6 +327,13 @@ class TestTopicClassification:
             summary="The Linux distribution moved to kernel 6.18 and refreshed its GNOME desktop.",
         )
         assert classify(article)[0] == "linux"
+
+
+class TestIngestReport:
+    def test_refresh_summary_counts_unchanged_feeds_as_healthy(self):
+        report = IngestReport(sources_total=72, sources_ok=44, sources_not_modified=26,
+                              sources_failed=2)
+        assert "70/72 sources ok (26 unchanged since the last fetch, 2 failed)" in report.summary()
 
 
 # ---------------------------------------------------------------- dedup

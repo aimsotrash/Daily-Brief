@@ -57,6 +57,36 @@ def canonical_url(url: str) -> str:
     return urlunparse((scheme, netloc, path, "", query, ""))
 
 
+#: LWN marks subscriber-only articles with a leading "[$]".
+_PAYWALL_MARK_RE = re.compile(r"^\[\$\]\s*")
+#: A plain-text list item: "- item", "• item", "* item".
+_BULLET_RE = re.compile(r"^[-–•*·]\s+")
+
+
+def tidy_feed_text(value: str | None) -> str:
+    """Flatten feed text to clean prose.
+
+    Some feeds (Slashdot among them) write plain-text bullet lists. Collapsing
+    their line breaks would run the dashes into the sentences around them, so
+    each list item loses its marker and ends as a sentence first.
+    """
+    if not value:
+        return ""
+    parts: list[str] = []
+    for line in value.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        bullet = _BULLET_RE.match(line)
+        if bullet:
+            line = line[bullet.end():].strip()
+            if line and line[-1] not in ".!?:;…\"'”’)":
+                line += "."
+        if line:
+            parts.append(line)
+    return normalize_whitespace(" ".join(parts))
+
+
 def normalize_entry(entry: RawEntry, source: Source) -> Article | None:
     """Convert one raw feed entry into an :class:`Article`.
 
@@ -65,14 +95,14 @@ def normalize_entry(entry: RawEntry, source: Source) -> Article | None:
     missing authors -- is tolerated and left empty.
     """
     # Feeds often double-encode titles, so entities like &#8217; survive XML parsing.
-    title = normalize_whitespace(strip_html(entry.title))
+    title = _PAYWALL_MARK_RE.sub("", normalize_whitespace(strip_html(entry.title)))
     url = (entry.link or "").strip()
     if not title or not url.lower().startswith(("http://", "https://")):
         return None
 
     canonical = canonical_url(url)
-    summary = normalize_whitespace(entry.summary)
-    content = normalize_whitespace(entry.content)
+    summary = tidy_feed_text(entry.summary)
+    content = tidy_feed_text(entry.content)
 
     # Some feeds put the whole body in <description> and nothing in <content>.
     if not content and len(summary) > 400:

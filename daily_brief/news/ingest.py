@@ -59,8 +59,9 @@ class IngestReport:
             f"{self.inserted} new, {self.updated} updated, "
             f"{self.duplicates_exact + self.duplicates_near} duplicates dropped, "
             f"{self.clusters} story clusters, "
-            f"{self.sources_ok}/{self.sources_total} sources ok "
-            f"({self.sources_failed} failed, {self.sources_not_modified} unchanged)"
+            f"{self.sources_ok + self.sources_not_modified}/{self.sources_total} sources ok "
+            f"({self.sources_not_modified} unchanged since the last fetch, "
+            f"{self.sources_failed} failed)"
         )
 
 

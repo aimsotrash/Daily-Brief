@@ -96,7 +96,7 @@
 
   --mono:  ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, monospace;
   --sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
-  --serif: "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  --serif: "Iowan Old Style", Charter, "Source Serif 4", "Source Serif Pro", "Noto Serif", Georgia, serif;
 
   --ease: cubic-bezier(.32, .72, 0, 1);
 }
@@ -688,7 +688,8 @@ body.has-chat .ask-meta { justify-content: flex-end; margin-top: var(--s2); min-
 
 /* ═══════════════════════ 8. evidence card ═══════════════════════ */
 
-.evidence { max-width: 640px; }
+/* Same cap as .coverage-body, so open disclosures line up on the right. */
+.evidence { max-width: 720px; }
 .evidence-title {
   font-size: var(--fs-micro); font-weight: 700; letter-spacing: .13em;
   text-transform: uppercase; color: var(--text-faint);
